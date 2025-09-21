@@ -1,0 +1,35 @@
+<?php
+header("Content-Type: application/json");
+require_once "conexion.php"; // Debes tener este archivo para conexión MySQL
+
+$input = json_decode(file_get_contents("php://input"), true);
+$email = $input['email'] ?? '';
+$password = $input['password'] ?? '';
+
+$response = ["success" => false, "message" => "Credenciales inválidas"];
+
+if ($email && $password) {
+    $stmt = $conn->prepare("SELECT id, email, password FROM usuarios WHERE email = ? LIMIT 1");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($row = $result->fetch_assoc()) {
+        // Comparar con SHA2 en MySQL
+        $stmt2 = $conn->prepare("SELECT id FROM usuarios WHERE email = ? AND password = SHA2(?,256)");
+        $stmt2->bind_param("ss", $email, $password);
+        $stmt2->execute();
+        $res2 = $stmt2->get_result();
+        if ($res2->fetch_assoc()) {
+            $response = ["success" => true, "message" => "Login exitoso", "user" => ["id" => $row['id'], "email" => $row['email']]];
+        } else {
+            $response["message"] = "Contraseña incorrecta";
+        }
+        $stmt2->close();
+    } else {
+        $response["message"] = "Usuario no encontrado";
+    }
+    $stmt->close();
+}
+
+echo json_encode($response);
+?>

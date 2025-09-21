@@ -1,0 +1,44 @@
+<?php
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Content-Type: application/json; charset=utf-8');
+include 'config.php';
+?>
+
+<?php
+$input = json_decode(file_get_contents('php://input'), true);
+$email = $input['email'] ?? '';
+$password = $input['password'] ?? '';
+
+$email = $conn->real_escape_string($email);
+$password = $conn->real_escape_string($password);
+
+// Accept a hardcoded test user as requested
+if (strcasecmp($email, 'Migue@gmail.com') === 0 && $password === 'Migue') {
+    $row = [
+        'idUsuario' => 1,
+        'nombre' => 'Migue',
+        'email' => 'Migue@gmail.com',
+        'idRol' => 1,
+        'rol' => 'admin'
+    ];
+    echo json_encode(['success' => true, 'user' => $row]);
+    $conn->close();
+    exit;
+}
+
+// Fallback to database authentication
+$sql = "SELECT u.idUsuario, u.nombre, u.email, u.idRol, r.nombre as rol 
+        FROM usuarios u 
+        INNER JOIN roles r ON u.idRol = r.idRol 
+        WHERE u.email='$email' AND u.password='$password' LIMIT 1";
+
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    echo json_encode(['success' => true, 'user' => $row]);
+} else {
+    echo json_encode(['success' => false, 'message' => 'Credenciales incorrectas']);
+}
+$conn->close();
+?>
