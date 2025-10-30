@@ -1,0 +1,53 @@
+
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../models/user.dart';
+import '../models/category.dart';
+import '../models/product.dart';
+
+const String API_URL = "http://10.0.2.2/APIAPPJAPON"; // Cambia según tu servidor
+
+class ApiService {
+  static Map<String, String> jsonHeaders() => {'Content-Type': 'application/json'};
+
+  static Future<Map<String, dynamic>> login(String email, String password) async {
+    final uri = Uri.parse('\$API_URL/login.php');
+    final res = await http.post(uri, headers: jsonHeaders(), body: jsonEncode({'email': email, 'password': password}));
+    if (res.statusCode == 200) return json.decode(res.body);
+    throw Exception('Error en login');
+  }
+
+  static Future<List<Category>> fetchCategories() async {
+    final res = await http.get(Uri.parse('\$API_URL/categorias.php'));
+    if (res.statusCode == 200) {
+      final List decoded = json.decode(res.body);
+      return decoded.map((e) => Category.fromJson(e)).toList();
+    }
+    throw Exception('Error cargando categorias');
+  }
+
+  static Future<bool> createCategory(String nombre, String descripcion) async {
+    final res = await http.post(Uri.parse('\$API_URL/categorias.php'), headers: jsonHeaders(), body: jsonEncode({'nombre': nombre, 'descripcion': descripcion}));
+    return res.statusCode == 200 && json.decode(res.body)['success'] == true;
+  }
+
+  static Future<List<Product>> fetchProducts({int? idCategoria}) async {
+    final uri = Uri.parse('\$API_URL/productos.php' + (idCategoria != null ? '?idCategoria=\$idCategoria' : ''));
+    final res = await http.get(uri);
+    if (res.statusCode == 200) {
+      final List decoded = json.decode(res.body);
+      return decoded.map((e) => Product.fromJson(e)).toList();
+    }
+    throw Exception('Error cargando productos');
+  }
+
+  static Future<bool> createProduct(String nombre, String descripcion, double precio, int idCategoria) async {
+    final res = await http.post(Uri.parse('\$API_URL/productos.php'), headers: jsonHeaders(), body: jsonEncode({'nombre': nombre, 'descripcion': descripcion, 'precio': precio, 'idCategoria': idCategoria}));
+    return res.statusCode == 200 && json.decode(res.body)['success'] == true;
+  }
+
+  static Future<bool> deleteProduct(int id) async {
+    final res = await http.delete(Uri.parse('\$API_URL/productos.php?idProductos=\$id'));
+    return res.statusCode == 200 && json.decode(res.body)['success'] == true;
+  }
+}

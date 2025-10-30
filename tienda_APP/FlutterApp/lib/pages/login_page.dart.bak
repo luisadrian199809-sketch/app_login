@@ -1,0 +1,49 @@
+
+import 'package:flutter/material.dart';
+import '../services/api_service.dart';
+import 'home_page.dart';
+
+class LoginPage extends StatefulWidget {
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
+  String error = '';
+  bool loading = false;
+
+  void login() async {
+    setState(() => loading = true);
+    try {
+      final res = await ApiService.login(_emailCtrl.text.trim(), _passCtrl.text.trim());
+      if (res['success']) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomePage(user: res['user'])));
+      } else {
+        setState(() => error = res['message'] ?? 'Credenciales incorrectas');
+      }
+    } catch (e) {
+      setState(() => error = 'Error: \$e');
+    } finally {
+      setState(() => loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Login')),
+      body: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(children: [
+          TextField(controller: _emailCtrl, decoration: InputDecoration(labelText: 'Email')),
+          TextField(controller: _passCtrl, decoration: InputDecoration(labelText: 'Password'), obscureText: true),
+          SizedBox(height: 12),
+          ElevatedButton(onPressed: loading ? null : login, child: loading ? CircularProgressIndicator(color: Colors.white) : Text('Ingresar')),
+          if (error.isNotEmpty) Padding(padding: EdgeInsets.only(top: 12), child: Text(error, style: TextStyle(color: Colors.red)))
+        ]),
+      ),
+    );
+  }
+}
